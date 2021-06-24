@@ -1,3 +1,5 @@
+use anyhow::Result;
+use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
 use libp2p::futures::StreamExt;
@@ -12,6 +14,21 @@ use libp2p::PeerId;
 use libp2p::{identity, rendezvous, Swarm};
 use libp2p::{NetworkBehaviour, Transport};
 use std::time::Duration;
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt)]
+struct Cli {
+    #[structopt(long = "secret-key", help = "32 byte string", parse(try_from_str = parse_secret_key))]
+    pub secret_key: SecretKey,
+    #[structopt(long = "port")]
+    pub port: u16,
+}
+
+fn parse_secret_key(s: &str) -> Result<SecretKey> {
+    let bytes = s.to_string().into_bytes();
+    let secret_key = SecretKey::from_bytes(bytes)?;
+    Ok(secret_key)
+}
 
 #[derive(Debug)]
 enum Event {
@@ -41,9 +58,9 @@ struct Behaviour {
 
 #[tokio::main]
 async fn main() {
-    let bytes = [0u8; 32];
-    let key = identity::ed25519::SecretKey::from_bytes(bytes).expect("we always pass 32 bytes");
-    let identity = identity::Keypair::Ed25519(key.into());
+    let cli = Cli::from_args();
+
+    let identity = identity::Keypair::Ed25519(cli.secret_key.into());
 
     let peer_id = PeerId::from(identity.public());
 
@@ -82,7 +99,7 @@ async fn main() {
     println!("peer id: {}", swarm.local_peer_id());
 
     swarm
-        .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
+        .listen_on(format!("/ip4/0.0.0.0/tcp/{}", cli.port).parse().unwrap())
         .unwrap();
 
     loop {

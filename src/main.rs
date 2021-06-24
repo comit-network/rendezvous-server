@@ -1,19 +1,16 @@
+mod transport;
+
+use crate::transport::authenticate_and_multiplex;
 use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
-use libp2p::core::muxing::StreamMuxerBox;
-use libp2p::core::upgrade::{SelectUpgrade, Version};
+use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
 use libp2p::identify::{Identify, IdentifyConfig, IdentifyEvent};
-use libp2p::mplex::MplexConfig;
-use libp2p::noise::NoiseConfig;
-use libp2p::noise::{Keypair, X25519Spec};
 use libp2p::rendezvous::{Config, Rendezvous};
 use libp2p::tcp::TokioTcpConfig;
-use libp2p::yamux::YamuxConfig;
 use libp2p::PeerId;
 use libp2p::{identity, rendezvous, Swarm};
 use libp2p::{NetworkBehaviour, Transport};
-use std::time::Duration;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -64,22 +61,9 @@ async fn main() {
 
     let peer_id = PeerId::from(identity.public());
 
-    let dh_keys = Keypair::<X25519Spec>::new()
-        .into_authentic(&identity)
-        .expect("failed to create dh_keys");
-    let noise_config = NoiseConfig::xx(dh_keys).into_authenticated();
+    let tcp_with_dns = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true)).unwrap();
 
-    let tcp_config = TokioTcpConfig::new();
-    let transport = tcp_config
-        .upgrade(Version::V1)
-        .authenticate(noise_config)
-        .multiplex(SelectUpgrade::new(
-            YamuxConfig::default(),
-            MplexConfig::new(),
-        ))
-        .timeout(Duration::from_secs(20))
-        .map(|(peer, muxer), _| (peer, StreamMuxerBox::new(muxer)))
-        .boxed();
+    let transport = authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap();
 
     let identify = Identify::new(IdentifyConfig::new(
         "rendezvous/1.0.0".to_string(),

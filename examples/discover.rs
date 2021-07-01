@@ -4,9 +4,7 @@ use libp2p::futures::StreamExt;
 use libp2p::rendezvous::{Config, Rendezvous};
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
-use libp2p::Transport;
-use libp2p::{identity, rendezvous};
-use libp2p::{Multiaddr, PeerId};
+use libp2p::{identity, rendezvous, Multiaddr, PeerId, Transport};
 use rendezvous_server::transport::authenticate_and_multiplex;
 use structopt::StructOpt;
 

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request: # Need to run on pull-requests, otherwise PRs from forks don't run
+  push:
+    branches:
+      - 'master' # Always build head of master for the badge in the README
+
+jobs:
+  static_analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2.3.4
+
+      - name: Check formatting
+        uses: dprint/check@v1.5
+
+      - name: Run clippy with default features
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run clippy with all features enabled
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - name: Checkout sources
+        uses: actions/checkout@v2.3.4
+
+      - name: Install compiler for armhf arch
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-arm-linux-gnueabihf
+
+      - name: Build binary
+        run: |
+          cargo build -p rendezvous-server --target ${{ matrix.target }}
+
+      - name: Upload rendezvous-server binary
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: rendezvous-server-${{ matrix.target }}
+          path: target/${{ matrix.target }}/debug/rendezvous-server

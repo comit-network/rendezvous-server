@@ -1,9 +1,8 @@
 use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::identify::{Identify, IdentifyEvent};
-use libp2p::rendezvous;
 use libp2p::rendezvous::Rendezvous;
-use libp2p::NetworkBehaviour;
+use libp2p::{rendezvous, NetworkBehaviour};
 
 pub mod transport;
 

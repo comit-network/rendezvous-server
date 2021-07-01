@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
                 println!("Lost connection to rendezvous point {}", error);
             }
             // once `/identify` did its job, we know our external address and can register
-            SwarmEvent::Behaviour(Event::Identify(IdentifyEvent::Received { .. })) => {
+            SwarmEvent::Behaviour(Event::Ping(IdentifyEvent::Received { .. })) => {
                 swarm
                     .behaviour_mut()
                     .rendezvous

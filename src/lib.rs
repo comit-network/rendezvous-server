@@ -1,8 +1,9 @@
 use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
-use libp2p::identify::{Identify, IdentifyEvent};
+use libp2p::ping::{Ping, PingConfig, PingEvent};
 use libp2p::rendezvous::Rendezvous;
 use libp2p::{rendezvous, NetworkBehaviour};
+use std::time::Duration;
 
 pub mod transport;
 
@@ -15,7 +16,7 @@ pub fn parse_secret_key(s: &str) -> Result<SecretKey> {
 #[derive(Debug)]
 pub enum Event {
     Rendezvous(rendezvous::Event),
-    Identify(IdentifyEvent),
+    Ping(PingEvent),
 }
 
 impl From<rendezvous::Event> for Event {
@@ -24,9 +25,9 @@ impl From<rendezvous::Event> for Event {
     }
 }
 
-impl From<IdentifyEvent> for Event {
-    fn from(event: IdentifyEvent) -> Self {
-        Event::Identify(event)
+impl From<PingEvent> for Event {
+    fn from(event: PingEvent) -> Self {
+        Event::Ping(event)
     }
 }
 
@@ -34,14 +35,20 @@ impl From<IdentifyEvent> for Event {
 #[behaviour(event_process = false)]
 #[behaviour(out_event = "Event")]
 pub struct Behaviour {
-    identify: Identify,
+    ping: Ping,
     pub rendezvous: Rendezvous,
 }
 
 impl Behaviour {
-    pub fn new(identify: Identify, rendezvous: Rendezvous) -> Self {
+    pub fn new(rendezvous: Rendezvous) -> Self {
         Self {
-            identify,
+            // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed
+            // interval for sending Ping set to ~100 years
+            ping: Ping::new(
+                PingConfig::new()
+                    .with_keep_alive(false)
+                    .with_interval(Duration::from_secs(3_154_000_000)),
+            ),
             rendezvous,
         }
     }

@@ -43,11 +43,11 @@ impl Behaviour {
     pub fn new(rendezvous: Rendezvous) -> Self {
         Self {
             // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed
-            // interval for sending Ping set to ~100 years
+            // interval for sending Ping set to 24 hours
             ping: Ping::new(
                 PingConfig::new()
                     .with_keep_alive(false)
-                    .with_interval(Duration::from_secs(3_154_000_000)),
+                    .with_interval(Duration::from_secs(86_400)),
             ),
             rendezvous,
         }

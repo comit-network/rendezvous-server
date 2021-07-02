@@ -30,13 +30,19 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
 
       - name: Checkout sources
         uses: actions/checkout@v2.3.4
 
-      - uses: Swatinem/rust-cache@v1.3.0
+      - name: Install compiler for armhf arch
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-arm-linux-gnueabihf
 
       - name: Build binary
         run: |

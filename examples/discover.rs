@@ -1,7 +1,7 @@
 use anyhow::Result;
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
-use libp2p::rendezvous::{Config, Rendezvous};
+use libp2p::rendezvous::{Config, Namespace, Rendezvous};
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, rendezvous, Multiaddr, PeerId, Transport};
@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
                 );
 
                 swarm.behaviour_mut().discover(
-                    Some(cli.namespace.to_string()),
+                    Some(Namespace::new(cli.namespace.clone())?),
                     None,
                     None,
                     rendezvous_point,

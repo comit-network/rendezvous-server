@@ -2,8 +2,7 @@ use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
-use libp2p::identify::{Identify, IdentifyConfig, IdentifyEvent};
-use libp2p::rendezvous::{Config, Rendezvous};
+use libp2p::rendezvous::{Config, Namespace, Rendezvous};
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, rendezvous, Multiaddr, PeerId, Transport};
@@ -36,16 +35,11 @@ async fn main() -> Result<()> {
 
     let transport = authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap();
 
-    let identify = Identify::new(IdentifyConfig::new(
-        "rendezvous/1.0.0".to_string(),
-        identity.public(),
-    ));
-
     let rendezvous = Rendezvous::new(identity.clone(), Config::default());
 
     let peer_id = PeerId::from(identity.public());
 
-    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(identify, rendezvous), peer_id)
+    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), peer_id)
         .executor(Box::new(|f| {
             tokio::spawn(f);
         }))
@@ -69,13 +63,14 @@ async fn main() -> Result<()> {
             } if peer_id == rendezvous_point => {
                 println!("Lost connection to rendezvous point {}", error);
             }
-            // once `/identify` did its job, we know our external address and can register
-            SwarmEvent::Behaviour(Event::Ping(IdentifyEvent::Received { .. })) => {
-                swarm
-                    .behaviour_mut()
-                    .rendezvous
-                    .register("rendezvous".to_string(), rendezvous_point, None)
-                    .unwrap();
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                if peer_id == cli.rendezvous_peer_id {
+                    swarm.behaviour_mut().rendezvous.register(
+                        Namespace::new("rendezvous".to_string())?,
+                        rendezvous_point,
+                        None,
+                    );
+                }
             }
             SwarmEvent::Behaviour(Event::Rendezvous(rendezvous::Event::Registered {
                 namespace,

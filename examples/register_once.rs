@@ -2,9 +2,8 @@ use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
-use libp2p::identify::{Identify, IdentifyConfig, IdentifyEvent};
-use libp2p::rendezvous::{Config, Rendezvous};
-use libp2p::swarm::{SwarmBuilder, SwarmEvent};
+use libp2p::rendezvous::{Config, Namespace, Rendezvous};
+use libp2p::swarm::{AddressScore, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, rendezvous, Multiaddr, PeerId, Transport};
 use rendezvous_server::transport::authenticate_and_multiplex;
@@ -17,9 +16,14 @@ struct Cli {
     pub rendezvous_peer_id: PeerId,
     #[structopt(long = "rendezvous-addr")]
     pub rendezvous_addr: Multiaddr,
+    #[structopt(
+        long = "external-addr",
+        help = "A public facing address is registered with the rendezvous server"
+    )]
+    pub external_addr: Multiaddr,
     #[structopt(long = "secret-key", parse(try_from_str = parse_secret_key))]
     pub secret_key: SecretKey,
-    #[structopt(long = "port")]
+    #[structopt(long = "port", help = "Listen port")]
     pub port: u16,
 }
 
@@ -36,16 +40,11 @@ async fn main() -> Result<()> {
 
     let transport = authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap();
 
-    let identify = Identify::new(IdentifyConfig::new(
-        "rendezvous/1.0.0".to_string(),
-        identity.public(),
-    ));
-
     let rendezvous = Rendezvous::new(identity.clone(), Config::default());
 
     let peer_id = PeerId::from(identity.public());
 
-    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(identify, rendezvous), peer_id)
+    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), peer_id)
         .executor(Box::new(|f| {
             tokio::spawn(f);
         }))
@@ -54,6 +53,8 @@ async fn main() -> Result<()> {
     println!("Local peer id: {}", swarm.local_peer_id());
 
     let _ = swarm.listen_on(format!("/ip4/0.0.0.0/tcp/{}", cli.port).parse().unwrap());
+
+    let _ = swarm.add_external_address(cli.external_addr, AddressScore::Infinite);
 
     swarm.dial_addr(rendezvous_point_address).unwrap();
 
@@ -69,13 +70,14 @@ async fn main() -> Result<()> {
             } if peer_id == rendezvous_point => {
                 println!("Lost connection to rendezvous point {}", error);
             }
-            // once `/identify` did its job, we know our external address and can register
-            SwarmEvent::Behaviour(Event::Identify(IdentifyEvent::Received { .. })) => {
-                swarm
-                    .behaviour_mut()
-                    .rendezvous
-                    .register("rendezvous".to_string(), rendezvous_point, None)
-                    .unwrap();
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                if peer_id == cli.rendezvous_peer_id {
+                    swarm.behaviour_mut().rendezvous.register(
+                        Namespace::new("rendezvous".to_string())?,
+                        rendezvous_point,
+                        None,
+                    );
+                }
             }
             SwarmEvent::Behaviour(Event::Rendezvous(rendezvous::Event::Registered {
                 namespace,

@@ -2,13 +2,12 @@ use anyhow::Result;
 use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
-use libp2p::identify::{Identify, IdentifyConfig};
 use libp2p::rendezvous::{Config, Rendezvous};
-use libp2p::swarm::SwarmBuilder;
+use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, PeerId, Transport};
 use rendezvous_server::transport::authenticate_and_multiplex;
-use rendezvous_server::{parse_secret_key, Behaviour};
+use rendezvous_server::{parse_secret_key, Behaviour, Event};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -29,15 +28,11 @@ async fn main() -> Result<()> {
 
     let transport = authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap();
 
-    let identify = Identify::new(IdentifyConfig::new(
-        "rendezvous/1.0.0".to_string(),
-        identity.public(),
-    ));
     let rendezvous = Rendezvous::new(identity.clone(), Config::default());
 
     let peer_id = PeerId::from(identity.public());
 
-    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(identify, rendezvous), peer_id)
+    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), peer_id)
         .executor(Box::new(|f| {
             tokio::spawn(f);
         }))
@@ -51,6 +46,12 @@ async fn main() -> Result<()> {
 
     loop {
         let event = swarm.next().await;
-        println!("swarm event: {:?}", event);
+
+        if let Some(event) = event {
+            match event {
+                SwarmEvent::Behaviour(Event::Ping(_)) => {}
+                event => println!("swarm event: {:?}", event),
+            }
+        }
     }
 }

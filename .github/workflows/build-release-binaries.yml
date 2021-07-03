@@ -10,12 +10,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - bin: rendezvous_server
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             archive_ext: tar
-          - bin: rendezvous_server
-            target: armv7-unknown-linux-gnueabihf
+          - target: armv7-unknown-linux-gnueabihf
             os: ubuntu-latest
             archive_ext: tar
     runs-on: ${{ matrix.os }}
@@ -28,12 +26,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
 
-      - name: Build ${{ matrix.target }} ${{ matrix.bin }} release binary
+      - name: Build ${{ matrix.target }} rendezvous_server release binary
 
-        run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin ${{ matrix.bin }}
+        run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous_server
 
       - name: Smoke test the binary
-        run: target/${{ matrix.target }}/release/${{ matrix.bin }} --help
+        run: target/${{ matrix.target }}/release/rendezvous_server --help
 
       # Remove once python 3 is the default
       - uses: actions/setup-python@v2.2.2
@@ -51,14 +49,14 @@ jobs:
           triple = "${{ matrix.target }}".split("-")
           arch = triple[0]
 
-          archive_name=f'${{ matrix.bin }}_${{ github.event.release.tag_name }}_{os_info.system}_{arch}.${{ matrix.archive_ext }}'
+          archive_name=f'rendezvous_server_${{ github.event.release.tag_name }}_{os_info.system}_{arch}.${{ matrix.archive_ext }}'
 
           print(f'::set-output name=archive::{archive_name}')
 
       - name: Pack linux archive
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: tar -C ./target/${{ matrix.target }}/release --create --file=${{ steps.create-archive-name.outputs.archive }} ${{ matrix.bin }}
+        run: tar -C ./target/${{ matrix.target }}/release --create --file=${{ steps.create-archive-name.outputs.archive }} rendezvous_server
 
       - name: Upload archive
         uses: actions/upload-release-asset@v1.0.2

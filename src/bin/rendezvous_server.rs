@@ -1,5 +1,4 @@
 use anyhow::Result;
-use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
 use libp2p::rendezvous::{Config, Rendezvous};
@@ -7,13 +6,17 @@ use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, PeerId, Transport};
 use rendezvous_server::transport::authenticate_and_multiplex;
-use rendezvous_server::{parse_secret_key, Behaviour, Event};
+use rendezvous_server::{load_secret_key_from_file, Behaviour, Event};
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(long = "secret-key", help = "32 byte string", parse(try_from_str = parse_secret_key))]
-    pub secret_key: SecretKey,
+    #[structopt(
+        long = "secret-file",
+        help = "Path to the file that contains the secret used to derive the rendezvous server's identity"
+    )]
+    pub secret_file: PathBuf,
     #[structopt(long = "port")]
     pub port: u16,
 }
@@ -22,7 +25,9 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::from_args();
 
-    let identity = identity::Keypair::Ed25519(cli.secret_key.into());
+    let secret_key = load_secret_key_from_file(&cli.secret_file)?;
+
+    let identity = identity::Keypair::Ed25519(secret_key.into());
 
     let tcp_with_dns = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true)).unwrap();
 

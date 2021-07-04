@@ -3,6 +3,8 @@ use libp2p::core::identity::ed25519::SecretKey;
 use libp2p::ping::{Ping, PingConfig, PingEvent};
 use libp2p::rendezvous::Rendezvous;
 use libp2p::{rendezvous, NetworkBehaviour};
+use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
 pub mod transport;
@@ -52,4 +54,11 @@ impl Behaviour {
             rendezvous,
         }
     }
+}
+
+pub fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
+    let contents = fs::read_to_string(path)?;
+    let bytes = contents.into_bytes();
+    let secret_key = SecretKey::from_bytes(bytes)?;
+    Ok(secret_key)
 }

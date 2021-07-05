@@ -13,21 +13,21 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(long = "rendezvous-peer_id")]
-    pub rendezvous_peer_id: PeerId,
+    rendezvous_peer_id: PeerId,
     #[structopt(long = "rendezvous-addr")]
-    pub rendezvous_addr: Multiaddr,
+    rendezvous_addr: Multiaddr,
     #[structopt(
         long = "external-addr",
         help = "A public facing address is registered with the rendezvous server"
     )]
-    pub external_addr: Multiaddr,
+    external_addr: Multiaddr,
     #[structopt(
         long = "secret-file",
         help = "Path to the file that contains the secret used to derive the rendezvous server's identity"
     )]
-    pub secret_file: PathBuf,
+    secret_file: PathBuf,
     #[structopt(long = "port", help = "Listen port")]
-    pub port: u16,
+    port: u16,
 }
 
 #[tokio::main]

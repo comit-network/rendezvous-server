@@ -16,9 +16,9 @@ struct Cli {
         long = "secret-file",
         help = "Path to the file that contains the secret used to derive the rendezvous server's identity"
     )]
-    pub secret_file: PathBuf,
+    secret_file: PathBuf,
     #[structopt(long = "port")]
-    pub port: u16,
+    port: u16,
 }
 
 #[tokio::main]

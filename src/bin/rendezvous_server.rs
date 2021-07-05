@@ -25,7 +25,7 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::from_args();
 
-    let secret_key = load_secret_key_from_file(&cli.secret_file)?;
+    let secret_key = load_secret_key_from_file(&cli.secret_file).await?;
 
     let identity = identity::Keypair::Ed25519(secret_key.into());
 

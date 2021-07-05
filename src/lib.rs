@@ -57,8 +57,7 @@ impl Behaviour {
 }
 
 pub fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
-    let contents = fs::read_to_string(path)?;
-    let bytes = contents.into_bytes();
+    let bytes = fs::read(path)?;
     let secret_key = SecretKey::from_bytes(bytes)?;
     Ok(secret_key)
 }

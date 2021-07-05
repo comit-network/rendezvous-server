@@ -9,4 +9,4 @@ anyhow = "1"
 futures = { version = "0.3", default-features = false }
 libp2p = { git = "https://github.com/comit-network/rust-libp2p.git", rev = "4cacaf215b334d447faca8f4e361fe19c30d2162", default-features = false, features = [ "rendezvous", "tcp-tokio", "yamux", "mplex", "dns-tokio", "noise", "ping" ] }
 structopt = { version = "0.3", default-features = false }
-tokio = { version = "1", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs", "net" ] }
+tokio = { version = "1.8", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs", "net", "io-util" ] }

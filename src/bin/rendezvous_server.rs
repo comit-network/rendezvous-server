@@ -6,7 +6,7 @@ use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::{identity, PeerId, Transport};
 use rendezvous_server::transport::authenticate_and_multiplex;
-use rendezvous_server::{load_secret_key_from_file, Behaviour, Event};
+use rendezvous_server::{generate_secret_key_file, load_secret_key_from_file, Behaviour, Event};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -17,6 +17,8 @@ struct Cli {
         help = "Path to the file that contains the secret used to derive the rendezvous server's identity"
     )]
     secret_file: PathBuf,
+    #[structopt(long, short)]
+    generate_secret: bool,
     #[structopt(long = "port")]
     port: u16,
 }
@@ -25,7 +27,10 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::from_args();
 
-    let secret_key = load_secret_key_from_file(&cli.secret_file).await?;
+    let secret_key = match cli.generate_secret {
+        true => generate_secret_key_file(cli.secret_file).await?,
+        false => load_secret_key_from_file(&cli.secret_file).await?,
+    };
 
     let identity = identity::Keypair::Ed25519(secret_key.into());
 

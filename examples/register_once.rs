@@ -23,10 +23,13 @@ struct Cli {
     external_addr: Multiaddr,
     #[structopt(
         long = "secret-file",
-        help = "Path to the file that contains the secret used to derive the rendezvous server's identity"
+        help = "Path to the file that contains the secret key of the rendezvous server's identity keypair"
     )]
     secret_file: PathBuf,
-    #[structopt(long = "--generate-secret")]
+    #[structopt(
+        long = "--generate-secret",
+        help = "Set this flag to generate a secret file at the path specified by the --secret-file argument"
+    )]
     generate_secret: bool,
     #[structopt(long = "port", help = "Listen port")]
     port: u16,

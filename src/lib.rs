@@ -6,6 +6,7 @@ use libp2p::{rendezvous, NetworkBehaviour};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+pub mod tracing;
 use tokio::fs;
 use tokio::fs::{DirBuilder, OpenOptions};
 use tokio::io::AsyncWriteExt;

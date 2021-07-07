@@ -5,8 +5,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+atty = "0.2"
 anyhow = "1"
 futures = { version = "0.3", default-features = false }
 libp2p = { git = "https://github.com/comit-network/rust-libp2p.git", rev = "4cacaf215b334d447faca8f4e361fe19c30d2162", default-features = false, features = [ "rendezvous", "tcp-tokio", "yamux", "mplex", "dns-tokio", "noise", "ping" ] }
 structopt = { version = "0.3", default-features = false }
 tokio = { version = "1.8", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs", "net", "io-util" ] }
+tracing = { version = "0.1", features = [ "attributes" ] }
+tracing-subscriber = { version = "0.2", default-features = false, features = [ "fmt", "ansi", "env-filter", "chrono", "tracing-log", "json" ] }

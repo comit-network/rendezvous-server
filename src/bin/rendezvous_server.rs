@@ -27,12 +27,17 @@ struct Cli {
     generate_secret: bool,
     #[structopt(long = "port")]
     port: u16,
+    #[structopt(long = "json", help = "Format logs as JSON")]
+    pub json: bool,
+    #[structopt(long = "timestamp", help = "Include timestamp in logs")]
+    pub timestamp: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init(LevelFilter::INFO, true)?;
     let cli = Cli::from_args();
+
+    init(LevelFilter::INFO, cli.json, cli.timestamp);
 
     let secret_key = match cli.generate_secret {
         true => generate_secret_key_file(cli.secret_file).await?,
@@ -70,7 +75,7 @@ async fn main() -> Result<()> {
                     peer,
                     registration,
                 })) => {
-                    tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=%registration.ttl,  "Peer Registered");
+                    tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=registration.ttl,  "Peer registered");
                 }
                 SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
                     peer,
@@ -82,7 +87,7 @@ async fn main() -> Result<()> {
                 SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::RegistrationExpired(
                     registration,
                 ))) => {
-                    tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=%registration.ttl, "Registration expired");
+                    tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=%rendezvous_server::tracing::Addresses(registration.record.addresses()), ttl=registration.ttl, "Registration expired");
                 }
                 SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerUnregistered {
                     peer,

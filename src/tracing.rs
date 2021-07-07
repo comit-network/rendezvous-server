@@ -1,11 +1,12 @@
-use anyhow::Result;
+use libp2p::Multiaddr;
+use std::fmt;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::time::ChronoLocal;
 use tracing_subscriber::FmtSubscriber;
 
-pub fn init(level: LevelFilter, json_format: bool) -> Result<()> {
+pub fn init(level: LevelFilter, json_format: bool, timestamp: bool) {
     if level == LevelFilter::OFF {
-        return Ok(());
+        return;
     }
 
     let is_terminal = atty::is(atty::Stream::Stderr);
@@ -19,11 +20,27 @@ pub fn init(level: LevelFilter, json_format: bool) -> Result<()> {
 
     if json_format {
         builder.json().init();
-    } else if is_terminal {
-        builder.init();
-    } else {
-        builder.without_time().init();
+        return;
     }
 
-    Ok(())
+    if !timestamp {
+        builder.without_time().init();
+        return;
+    }
+    builder.init();
+}
+
+pub struct Addresses<'a>(pub &'a [Multiaddr]);
+
+// Prints an array of multiaddresses as a comma seperated string
+impl fmt::Display for Addresses<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let display = self
+            .0
+            .iter()
+            .map(|addr| addr.to_string())
+            .collect::<Vec<String>>()
+            .join(",");
+        write!(f, "{}", display)
+    }
 }

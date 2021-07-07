@@ -7,7 +7,7 @@ A standalone libp2p [rendezvous server](https://github.com/libp2p/specs/tree/mas
 Run the `rendezvous_server`:
 
 ```
-rendezvous-server --secret-file <PATH-TO-SECRET-FILE> --port 8888
+rendezvous_server --secret-file <PATH-TO-SECRET-FILE> --port 8888
 ```
 
-Run `rendezvous-server --help` for more options
+Run `rendezvous_server --help` for more options

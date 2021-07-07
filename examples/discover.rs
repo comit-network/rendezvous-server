@@ -11,11 +11,11 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(long = "rendezvous-peer_id")]
-    pub rendezvous_peer_id: PeerId,
+    rendezvous_peer_id: PeerId,
     #[structopt(long = "rendezvous-addr")]
-    pub rendezvous_addr: Multiaddr,
+    rendezvous_addr: Multiaddr,
     #[structopt(long = "namespace")]
-    pub namespace: String,
+    namespace: String,
 }
 
 #[tokio::main]

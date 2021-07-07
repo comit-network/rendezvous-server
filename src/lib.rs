@@ -1,17 +1,16 @@
-use anyhow::Result;
-use libp2p::core::identity::ed25519::SecretKey;
+use anyhow::{Context, Result};
+use libp2p::identity::ed25519::{Keypair, SecretKey};
 use libp2p::ping::{Ping, PingConfig, PingEvent};
 use libp2p::rendezvous::Rendezvous;
 use libp2p::{rendezvous, NetworkBehaviour};
+use std::fmt::Debug;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tokio::fs;
+use tokio::fs::{DirBuilder, OpenOptions};
+use tokio::io::AsyncWriteExt;
 
 pub mod transport;
-
-pub fn parse_secret_key(s: &str) -> Result<SecretKey> {
-    let bytes = s.to_string().into_bytes();
-    let secret_key = SecretKey::from_bytes(bytes)?;
-    Ok(secret_key)
-}
 
 #[derive(Debug)]
 pub enum Event {
@@ -52,4 +51,35 @@ impl Behaviour {
             rendezvous,
         }
     }
+}
+
+pub async fn load_secret_key_from_file(path: impl AsRef<Path> + Debug) -> Result<SecretKey> {
+    let bytes = fs::read(&path)
+        .await
+        .with_context(|| format!("No secret file at {:?}", path))?;
+    let secret_key = SecretKey::from_bytes(bytes)?;
+    Ok(secret_key)
+}
+
+pub async fn generate_secret_key_file(path: PathBuf) -> Result<SecretKey> {
+    if let Some(parent) = path.parent() {
+        DirBuilder::new()
+            .recursive(true)
+            .create(parent)
+            .await
+            .with_context(|| format!("Could not create directory for secret file: {:?}", parent))?;
+    }
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .await
+        .with_context(|| format!("Could not generate secret file at {:?}", &path))?;
+
+    let keypair = Keypair::generate();
+    let secret_key = SecretKey::from(keypair);
+
+    file.write_all(secret_key.as_ref()).await?;
+
+    Ok(secret_key)
 }

@@ -95,6 +95,12 @@ async fn main() -> Result<()> {
                 })) => {
                     tracing::info!(%peer, %namespace, "Peer unregistered");
                 }
+                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::DiscoverServed {
+                    enquirer,
+                    ..
+                })) => {
+                    tracing::info!(peer=%enquirer, "Discovery served");
+                }
                 _ => {}
             }
         }

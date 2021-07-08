@@ -26,12 +26,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
 
-      - name: Build ${{ matrix.target }} rendezvous_server release binary
+      - name: Build ${{ matrix.target }} rendezvous-server release binary
 
-        run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous_server
+        run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous-server
 
       - name: Smoke test the binary
-        run: target/${{ matrix.target }}/release/rendezvous_server --help
+        run: target/${{ matrix.target }}/release/rendezvous-server --help
 
       # Remove once python 3 is the default
       - uses: actions/setup-python@v2.2.2
@@ -49,14 +49,14 @@ jobs:
           triple = "${{ matrix.target }}".split("-")
           arch = triple[0]
 
-          archive_name=f'rendezvous_server_${{ github.event.release.tag_name }}_{os_info.system}_{arch}.${{ matrix.archive_ext }}'
+          archive_name=f'rendezvous-server_${{ github.event.release.tag_name }}_{os_info.system}_{arch}.${{ matrix.archive_ext }}'
 
           print(f'::set-output name=archive::{archive_name}')
 
       - name: Pack linux archive
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: tar -C ./target/${{ matrix.target }}/release --create --file=${{ steps.create-archive-name.outputs.archive }} rendezvous_server
+        run: tar -C ./target/${{ matrix.target }}/release --create --file=${{ steps.create-archive-name.outputs.archive }} rendezvous-server
 
       - name: Upload archive
         uses: actions/upload-release-asset@v1.0.2

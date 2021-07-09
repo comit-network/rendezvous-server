@@ -40,15 +40,18 @@ struct Cli {
     port: u16,
     #[structopt(long, help = "Format logs as JSON")]
     json: bool,
-    #[structopt(long, help = "Include timestamp in logs")]
-    timestamp: bool,
+    #[structopt(
+        long,
+        help = "Don't include timestamp in logs. Useful if captured logs already get timestamped, e.g. through journald."
+    )]
+    no_timestamp: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::from_args();
 
-    init_tracing(LevelFilter::INFO, cli.json, cli.timestamp);
+    init_tracing(LevelFilter::INFO, cli.json, cli.no_timestamp);
 
     let secret_key = match cli.generate_secret {
         true => {
@@ -110,7 +113,7 @@ async fn main() -> Result<()> {
     }
 }
 
-fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
+fn init_tracing(level: LevelFilter, json_format: bool, no_timestamp: bool) {
     if level == LevelFilter::OFF {
         return;
     }
@@ -129,7 +132,7 @@ fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
         return;
     }
 
-    if !timestamp {
+    if no_timestamp {
         builder.without_time().init();
         return;
     }

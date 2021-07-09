@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `--timestamp` flag to `--no-timestamp`.
+  By default, logs are now emitted with a timestamp.
+
 ## [0.1.0]
 
 Initial release.

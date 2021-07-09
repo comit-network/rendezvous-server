@@ -163,11 +163,13 @@ impl Behaviour {
     }
 }
 
-pub async fn load_secret_key_from_file(path: impl AsRef<Path> + fmt::Debug) -> Result<SecretKey> {
-    let bytes = fs::read(&path)
+pub async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
+    let path = path.as_ref();
+    let bytes = fs::read(path)
         .await
-        .with_context(|| format!("No secret file at {:?}", path))?;
+        .with_context(|| format!("No secret file at {}", path.display()))?;
     let secret_key = SecretKey::from_bytes(bytes)?;
+
     Ok(secret_key)
 }
 
@@ -177,14 +179,19 @@ pub async fn generate_secret_key_file(path: PathBuf) -> Result<SecretKey> {
             .recursive(true)
             .create(parent)
             .await
-            .with_context(|| format!("Could not create directory for secret file: {:?}", parent))?;
+            .with_context(|| {
+                format!(
+                    "Could not create directory for secret file: {}",
+                    parent.display()
+                )
+            })?;
     }
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(&path)
         .await
-        .with_context(|| format!("Could not generate secret file at {:?}", &path))?;
+        .with_context(|| format!("Could not generate secret file at {}", path.display()))?;
 
     let keypair = Keypair::generate();
     let secret_key = SecretKey::from(keypair);

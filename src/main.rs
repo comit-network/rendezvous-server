@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use libp2p::core::identity::ed25519::Keypair;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::Boxed;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
@@ -53,7 +52,12 @@ async fn main() -> Result<()> {
     init_tracing(LevelFilter::INFO, cli.json, cli.timestamp);
 
     let secret_key = match cli.generate_secret {
-        true => generate_secret_key_file(cli.secret_file).await?,
+        true => {
+            let secret_key = SecretKey::generate();
+            write_secret_key_to_file(&secret_key, cli.secret_file).await?;
+
+            secret_key
+        }
         false => load_secret_key_from_file(&cli.secret_file).await?,
     };
 
@@ -173,7 +177,7 @@ pub async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretK
     Ok(secret_key)
 }
 
-pub async fn generate_secret_key_file(path: PathBuf) -> Result<SecretKey> {
+pub async fn write_secret_key_to_file(secret_key: &SecretKey, path: PathBuf) -> Result<()> {
     if let Some(parent) = path.parent() {
         DirBuilder::new()
             .recursive(true)
@@ -193,12 +197,9 @@ pub async fn generate_secret_key_file(path: PathBuf) -> Result<SecretKey> {
         .await
         .with_context(|| format!("Could not generate secret file at {}", path.display()))?;
 
-    let keypair = Keypair::generate();
-    let secret_key = SecretKey::from(keypair);
-
     file.write_all(secret_key.as_ref()).await?;
 
-    Ok(secret_key)
+    Ok(())
 }
 
 pub fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {

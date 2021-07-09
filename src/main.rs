@@ -75,42 +75,38 @@ async fn main() -> Result<()> {
         .context("Failed to initialize listener")?;
 
     loop {
-        let event = swarm.next().await;
-
-        if let Some(event) = event {
-            match event {
-                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerRegistered {
-                    peer,
-                    registration,
-                })) => {
-                    tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=registration.ttl,  "Peer registered");
-                }
-                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
-                    peer,
-                    namespace,
-                    error,
-                })) => {
-                    tracing::info!(%peer, %namespace, ?error, "Peer failed to register");
-                }
-                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::RegistrationExpired(
-                    registration,
-                ))) => {
-                    tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=%Addresses(registration.record.addresses()), ttl=registration.ttl, "Registration expired");
-                }
-                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerUnregistered {
-                    peer,
-                    namespace,
-                })) => {
-                    tracing::info!(%peer, %namespace, "Peer unregistered");
-                }
-                SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::DiscoverServed {
-                    enquirer,
-                    ..
-                })) => {
-                    tracing::info!(peer=%enquirer, "Discovery served");
-                }
-                _ => {}
+        match swarm.select_next_some().await {
+            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerRegistered {
+                peer,
+                registration,
+            })) => {
+                tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=registration.ttl,  "Peer registered");
             }
+            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
+                peer,
+                namespace,
+                error,
+            })) => {
+                tracing::info!(%peer, %namespace, ?error, "Peer failed to register");
+            }
+            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::RegistrationExpired(
+                registration,
+            ))) => {
+                tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=%Addresses(registration.record.addresses()), ttl=registration.ttl, "Registration expired");
+            }
+            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerUnregistered {
+                peer,
+                namespace,
+            })) => {
+                tracing::info!(%peer, %namespace, "Peer unregistered");
+            }
+            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::DiscoverServed {
+                enquirer,
+                ..
+            })) => {
+                tracing::info!(peer=%enquirer, "Discovery served");
+            }
+            _ => {}
         }
     }
 }

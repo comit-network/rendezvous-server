@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
 
     let identity = identity::Keypair::Ed25519(secret_key.into());
 
-    let transport = create_transport(&identity).unwrap();
+    let transport = create_transport(&identity).context("Failed to create transport")?;
 
     let rendezvous = Rendezvous::new(identity.clone(), Config::default());
 
@@ -74,8 +74,12 @@ async fn main() -> Result<()> {
     tracing::info!(peer_id=%swarm.local_peer_id(), "Rendezvous server peer id");
 
     swarm
-        .listen_on(format!("/ip4/0.0.0.0/tcp/{}", cli.port).parse().unwrap())
-        .unwrap();
+        .listen_on(
+            format!("/ip4/0.0.0.0/tcp/{}", cli.port)
+                .parse()
+                .expect("static string is valid MultiAddress"),
+        )
+        .context("Failed to initialize listener")?;
 
     loop {
         let event = swarm.next().await;
@@ -239,7 +243,7 @@ pub fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, S
     let multiplex_upgrade = SelectUpgrade::new(YamuxConfig::default(), MplexConfig::new());
 
     let transport = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true))
-        .unwrap()
+        .context("Failed to create DNS transport")?
         .upgrade(Version::V1)
         .authenticate(auth_upgrade)
         .multiplex(multiplex_upgrade)

@@ -108,6 +108,9 @@ async fn main() -> Result<()> {
             })) => {
                 tracing::info!(peer=%enquirer, "Discovery served");
             }
+            SwarmEvent::NewListenAddr(address) => {
+                tracing::info!(%address, "New listening address reported");
+            }
             _ => {}
         }
     }

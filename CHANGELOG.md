@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `--timestamp` flag to `--no-timestamp`.
+  By default, logs are now emitted with a timestamp.
+
+## [0.1.0]
+
 Initial release.
 
-[Unreleased]: https://github.com/comit-network/rendezvous-server/compare/fba56c1...HEAD
+[Unreleased]: https://github.com/comit-network/rendezvous-server/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/comit-network/rendezvous-server/compare/fba56c1...0.1.0

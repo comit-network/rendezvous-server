@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use futures::{AsyncRead, AsyncWrite};
 use libp2p::core::identity::ed25519::Keypair;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::Boxed;
@@ -60,9 +59,7 @@ async fn main() -> Result<()> {
 
     let identity = identity::Keypair::Ed25519(secret_key.into());
 
-    let tcp_with_dns = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true)).unwrap();
-
-    let transport = authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap();
+    let transport = create_transport(&identity).unwrap();
 
     let rendezvous = Rendezvous::new(identity.clone(), Config::default());
 
@@ -234,26 +231,15 @@ impl fmt::Display for Addresses<'_> {
     }
 }
 
-/// "Completes" a transport by applying the authentication and multiplexing
-/// upgrades.
-///
-/// Even though the actual transport technology in use might be different, for
-/// two libp2p applications to be compatible, the authentication and
-/// multiplexing upgrades need to be compatible.
-pub fn authenticate_and_multiplex<T>(
-    transport: Boxed<T>,
-    identity: &identity::Keypair,
-) -> Result<Boxed<(PeerId, StreamMuxerBox)>>
-where
-    T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
-{
+pub fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
     let auth_upgrade = {
         let noise_identity = noise::Keypair::<X25519Spec>::new().into_authentic(identity)?;
         NoiseConfig::xx(noise_identity).into_authenticated()
     };
     let multiplex_upgrade = SelectUpgrade::new(YamuxConfig::default(), MplexConfig::new());
 
-    let transport = transport
+    let transport = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true))
+        .unwrap()
         .upgrade(Version::V1)
         .authenticate(auth_upgrade)
         .multiplex(multiplex_upgrade)

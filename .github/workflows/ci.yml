@@ -13,7 +13,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2.3.4
 
+      - name: Install toolchain from rust-toolchain file
+        run: rustup show
+
       - uses: Swatinem/rust-cache@v1.3.0
+        with:
+          key: ${{ matrix.target }}
 
       - name: Check formatting
         uses: dprint/check@v1.5
@@ -38,6 +43,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2.3.4
 
+      - name: Install toolchain from rust-toolchain file
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v1.3.0
+        with:
+          key: ${{ matrix.target }}
+
       - name: Install compiler for armhf arch
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
         run: |
@@ -45,8 +57,7 @@ jobs:
           sudo apt-get install gcc-arm-linux-gnueabihf
 
       - name: Build binary
-        run: |
-          cargo build -p rendezvous-server --target ${{ matrix.target }}
+        run: cargo build -p rendezvous-server --target ${{ matrix.target }}
 
       - name: Upload rendezvous-server binary
         uses: actions/upload-artifact@v2-preview

@@ -24,13 +24,24 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
           token: ${{ secrets.BOTTY_GITHUB_TOKEN }}
 
+      - name: Install toolchain from rust-toolchain file
+        run: rustup show
+
       - uses: Swatinem/rust-cache@v1.3.0
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install compiler for armhf arch
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-arm-linux-gnueabihf
 
       - name: Build ${{ matrix.target }} rendezvous-server release binary
-
         run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous-server
 
       - name: Smoke test the binary
+        if: matrix.target != 'armv7-unknown-linux-gnueabihf'
         run: target/${{ matrix.target }}/release/rendezvous-server --help
 
       # Remove once python 3 is the default

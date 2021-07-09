@@ -12,7 +12,7 @@ use libp2p::rendezvous::{Config, Event as RendezvousEvent, Rendezvous};
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::yamux::YamuxConfig;
-use libp2p::{identity, noise, rendezvous, Multiaddr, PeerId, Transport};
+use libp2p::{identity, noise, rendezvous, Multiaddr, PeerId, Swarm, Transport};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -60,20 +60,9 @@ async fn main() -> Result<()> {
         }
         false => load_secret_key_from_file(&cli.secret_file).await?,
     };
-
     let identity = identity::Keypair::Ed25519(secret_key.into());
 
-    let transport = create_transport(&identity).context("Failed to create transport")?;
-
-    let rendezvous = Rendezvous::new(identity.clone(), Config::default());
-
-    let peer_id = PeerId::from(identity.public());
-
-    let mut swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), peer_id)
-        .executor(Box::new(|f| {
-            tokio::spawn(f);
-        }))
-        .build();
+    let mut swarm = create_swarm(identity)?;
 
     tracing::info!(peer_id=%swarm.local_peer_id(), "Rendezvous server peer id");
 
@@ -126,6 +115,100 @@ async fn main() -> Result<()> {
     }
 }
 
+fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
+    if level == LevelFilter::OFF {
+        return;
+    }
+
+    let is_terminal = atty::is(atty::Stream::Stderr);
+
+    let builder = FmtSubscriber::builder()
+        .with_env_filter(format!("rendezvous_server={}", level))
+        .with_writer(std::io::stderr)
+        .with_ansi(is_terminal)
+        .with_timer(ChronoLocal::with_format("%F %T".to_owned()))
+        .with_target(false);
+
+    if json_format {
+        builder.json().init();
+        return;
+    }
+
+    if !timestamp {
+        builder.without_time().init();
+        return;
+    }
+    builder.init();
+}
+
+async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<ed25519::SecretKey> {
+    let path = path.as_ref();
+    let bytes = fs::read(path)
+        .await
+        .with_context(|| format!("No secret file at {}", path.display()))?;
+    let secret_key = ed25519::SecretKey::from_bytes(bytes)?;
+
+    Ok(secret_key)
+}
+
+async fn write_secret_key_to_file(secret_key: &ed25519::SecretKey, path: PathBuf) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        DirBuilder::new()
+            .recursive(true)
+            .create(parent)
+            .await
+            .with_context(|| {
+                format!(
+                    "Could not create directory for secret file: {}",
+                    parent.display()
+                )
+            })?;
+    }
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .await
+        .with_context(|| format!("Could not generate secret file at {}", path.display()))?;
+
+    file.write_all(secret_key.as_ref()).await?;
+
+    Ok(())
+}
+
+fn create_swarm(identity: identity::Keypair) -> Result<Swarm<Behaviour>> {
+    let local_peer_id = identity.public().into_peer_id();
+
+    let transport = create_transport(&identity).context("Failed to create transport")?;
+    let rendezvous = Rendezvous::new(identity, Config::default());
+    let swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), local_peer_id)
+        .executor(Box::new(|f| {
+            tokio::spawn(f);
+        }))
+        .build();
+
+    Ok(swarm)
+}
+
+fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+    let auth_upgrade = {
+        let noise_identity = noise::Keypair::<X25519Spec>::new().into_authentic(identity)?;
+        NoiseConfig::xx(noise_identity).into_authenticated()
+    };
+    let multiplex_upgrade = SelectUpgrade::new(YamuxConfig::default(), MplexConfig::new());
+
+    let transport = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true))
+        .context("Failed to create DNS transport")?
+        .upgrade(Version::V1)
+        .authenticate(auth_upgrade)
+        .multiplex(multiplex_upgrade)
+        .timeout(Duration::from_secs(20))
+        .map(|(peer, muxer), _| (peer, StreamMuxerBox::new(muxer)))
+        .boxed();
+
+    Ok(transport)
+}
+
 #[derive(Debug)]
 enum Event {
     Rendezvous(rendezvous::Event),
@@ -167,67 +250,6 @@ impl Behaviour {
     }
 }
 
-async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<ed25519::SecretKey> {
-    let path = path.as_ref();
-    let bytes = fs::read(path)
-        .await
-        .with_context(|| format!("No secret file at {}", path.display()))?;
-    let secret_key = ed25519::SecretKey::from_bytes(bytes)?;
-
-    Ok(secret_key)
-}
-
-async fn write_secret_key_to_file(secret_key: &ed25519::SecretKey, path: PathBuf) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        DirBuilder::new()
-            .recursive(true)
-            .create(parent)
-            .await
-            .with_context(|| {
-                format!(
-                    "Could not create directory for secret file: {}",
-                    parent.display()
-                )
-            })?;
-    }
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .await
-        .with_context(|| format!("Could not generate secret file at {}", path.display()))?;
-
-    file.write_all(secret_key.as_ref()).await?;
-
-    Ok(())
-}
-
-fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
-    if level == LevelFilter::OFF {
-        return;
-    }
-
-    let is_terminal = atty::is(atty::Stream::Stderr);
-
-    let builder = FmtSubscriber::builder()
-        .with_env_filter(format!("rendezvous_server={}", level))
-        .with_writer(std::io::stderr)
-        .with_ansi(is_terminal)
-        .with_timer(ChronoLocal::with_format("%F %T".to_owned()))
-        .with_target(false);
-
-    if json_format {
-        builder.json().init();
-        return;
-    }
-
-    if !timestamp {
-        builder.without_time().init();
-        return;
-    }
-    builder.init();
-}
-
 struct Addresses<'a>(&'a [Multiaddr]);
 
 // Prints an array of multiaddresses as a comma seperated string
@@ -241,23 +263,4 @@ impl fmt::Display for Addresses<'_> {
             .join(",");
         write!(f, "{}", display)
     }
-}
-
-fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
-    let auth_upgrade = {
-        let noise_identity = noise::Keypair::<X25519Spec>::new().into_authentic(identity)?;
-        NoiseConfig::xx(noise_identity).into_authenticated()
-    };
-    let multiplex_upgrade = SelectUpgrade::new(YamuxConfig::default(), MplexConfig::new());
-
-    let transport = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true))
-        .context("Failed to create DNS transport")?
-        .upgrade(Version::V1)
-        .authenticate(auth_upgrade)
-        .multiplex(multiplex_upgrade)
-        .timeout(Duration::from_secs(20))
-        .map(|(peer, muxer), _| (peer, StreamMuxerBox::new(muxer)))
-        .boxed();
-
-    Ok(transport)
 }

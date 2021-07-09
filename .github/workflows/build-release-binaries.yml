@@ -36,6 +36,7 @@ jobs:
         run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous-server
 
       - name: Smoke test the binary
+        if: matrix.target != 'armv7-unknown-linux-gnueabihf'
         run: target/${{ matrix.target }}/release/rendezvous-server --help
 
       # Remove once python 3 is the default

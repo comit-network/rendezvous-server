@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
+use futures::StreamExt;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::Boxed;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
 use libp2p::dns::TokioDnsConfig;
-use libp2p::futures::StreamExt;
 use libp2p::identity::ed25519;
 use libp2p::mplex::MplexConfig;
 use libp2p::noise::{NoiseConfig, X25519Spec};

@@ -26,8 +26,13 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
 
-      - name: Build ${{ matrix.target }} rendezvous-server release binary
+      - name: Install compiler for armhf arch
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-arm-linux-gnueabihf
 
+      - name: Build ${{ matrix.target }} rendezvous-server release binary
         run: cargo build --target=${{ matrix.target }} --release --package rendezvous-server --bin rendezvous-server
 
       - name: Smoke test the binary

@@ -4,7 +4,7 @@ use libp2p::core::transport::Boxed;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
 use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::StreamExt;
-use libp2p::identity::ed25519::SecretKey;
+use libp2p::identity::ed25519;
 use libp2p::mplex::MplexConfig;
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::ping::{Ping, PingConfig, PingEvent};
@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
 
     let secret_key = match cli.generate_secret {
         true => {
-            let secret_key = SecretKey::generate();
+            let secret_key = ed25519::SecretKey::generate();
             write_secret_key_to_file(&secret_key, cli.secret_file).await?;
 
             secret_key
@@ -167,17 +167,17 @@ impl Behaviour {
     }
 }
 
-async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
+async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<ed25519::SecretKey> {
     let path = path.as_ref();
     let bytes = fs::read(path)
         .await
         .with_context(|| format!("No secret file at {}", path.display()))?;
-    let secret_key = SecretKey::from_bytes(bytes)?;
+    let secret_key = ed25519::SecretKey::from_bytes(bytes)?;
 
     Ok(secret_key)
 }
 
-async fn write_secret_key_to_file(secret_key: &SecretKey, path: PathBuf) -> Result<()> {
+async fn write_secret_key_to_file(secret_key: &ed25519::SecretKey, path: PathBuf) -> Result<()> {
     if let Some(parent) = path.parent() {
         DirBuilder::new()
             .recursive(true)

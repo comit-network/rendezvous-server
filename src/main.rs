@@ -27,21 +27,20 @@ use tracing_subscriber::FmtSubscriber;
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(
-        long = "secret-file",
+        long,
         help = "Path to the file that contains the secret key of the rendezvous server's identity keypair"
     )]
     secret_file: PathBuf,
     #[structopt(
         long,
-        short,
         help = "Set this flag to generate a secret file at the path specified by the --secret-file argument"
     )]
     generate_secret: bool,
-    #[structopt(long = "port")]
+    #[structopt(long)]
     port: u16,
-    #[structopt(long = "json", help = "Format logs as JSON")]
+    #[structopt(long, help = "Format logs as JSON")]
     json: bool,
-    #[structopt(long = "timestamp", help = "Include timestamp in logs")]
+    #[structopt(long, help = "Include timestamp in logs")]
     timestamp: bool,
 }
 

@@ -40,9 +40,9 @@ struct Cli {
     #[structopt(long = "port")]
     port: u16,
     #[structopt(long = "json", help = "Format logs as JSON")]
-    pub json: bool,
+    json: bool,
     #[structopt(long = "timestamp", help = "Include timestamp in logs")]
-    pub timestamp: bool,
+    timestamp: bool,
 }
 
 #[tokio::main]
@@ -127,7 +127,7 @@ async fn main() -> Result<()> {
 }
 
 #[derive(Debug)]
-pub enum Event {
+enum Event {
     Rendezvous(rendezvous::Event),
     Ping(PingEvent),
 }
@@ -147,13 +147,13 @@ impl From<PingEvent> for Event {
 #[derive(libp2p::NetworkBehaviour)]
 #[behaviour(event_process = false)]
 #[behaviour(out_event = "Event")]
-pub struct Behaviour {
+struct Behaviour {
     ping: Ping,
     rendezvous: Rendezvous,
 }
 
 impl Behaviour {
-    pub fn new(rendezvous: Rendezvous) -> Self {
+    fn new(rendezvous: Rendezvous) -> Self {
         Self {
             // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed
             // interval for sending Ping set to 24 hours
@@ -167,7 +167,7 @@ impl Behaviour {
     }
 }
 
-pub async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
+async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretKey> {
     let path = path.as_ref();
     let bytes = fs::read(path)
         .await
@@ -177,7 +177,7 @@ pub async fn load_secret_key_from_file(path: impl AsRef<Path>) -> Result<SecretK
     Ok(secret_key)
 }
 
-pub async fn write_secret_key_to_file(secret_key: &SecretKey, path: PathBuf) -> Result<()> {
+async fn write_secret_key_to_file(secret_key: &SecretKey, path: PathBuf) -> Result<()> {
     if let Some(parent) = path.parent() {
         DirBuilder::new()
             .recursive(true)
@@ -202,7 +202,7 @@ pub async fn write_secret_key_to_file(secret_key: &SecretKey, path: PathBuf) -> 
     Ok(())
 }
 
-pub fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
+fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
     if level == LevelFilter::OFF {
         return;
     }
@@ -228,7 +228,7 @@ pub fn init_tracing(level: LevelFilter, json_format: bool, timestamp: bool) {
     builder.init();
 }
 
-pub struct Addresses<'a>(pub &'a [Multiaddr]);
+struct Addresses<'a>(&'a [Multiaddr]);
 
 // Prints an array of multiaddresses as a comma seperated string
 impl fmt::Display for Addresses<'_> {
@@ -243,7 +243,7 @@ impl fmt::Display for Addresses<'_> {
     }
 }
 
-pub fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
     let auth_upgrade = {
         let noise_identity = noise::Keypair::<X25519Spec>::new().into_authentic(identity)?;
         NoiseConfig::xx(noise_identity).into_authenticated()

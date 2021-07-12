@@ -5,7 +5,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
+actix = "0.12"anyhow = "1"
 atty = "0.2"
 futures = { version = "0.3", default-features = false }
 libp2p = { git = "https://github.com/comit-network/rust-libp2p.git", branch = "rendezvous", default-features = false, features = [ "rendezvous", "tcp-tokio", "yamux", "mplex", "dns-tokio", "noise", "ping" ] }

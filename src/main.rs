@@ -1,5 +1,6 @@
+use actix::{Actor, Handler};
 use anyhow::{Context, Result};
-use futures::StreamExt;
+use futures::{FutureExt, StreamExt};
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::Boxed;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
@@ -74,40 +75,56 @@ async fn main() -> Result<()> {
         )
         .context("Failed to initialize listener")?;
 
+    let mut actor = actix::Context::<RegisteredPeers>::new().into_future(RegisteredPeers {});
+    let address = actor.address();
+
     loop {
-        match swarm.select_next_some().await {
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerRegistered {
-                peer,
-                registration,
-            })) => {
+        tokio::select! {
+            event = swarm.select_next_some() => {
+                match event {
+                    SwarmEvent::Behaviour(event) => {
+                        address.try_send(event).unwrap();
+                    }
+                    SwarmEvent::NewListenAddr(address) => {
+                        tracing::info!(%address, "New listening address reported");
+                    }
+                    _ => {}
+                }
+            },
+            _ = futures::future::poll_fn(|cx| actor.poll_unpin(cx)) => { }
+        }
+    }
+}
+
+struct RegisteredPeers {}
+
+impl Actor for RegisteredPeers {
+    type Context = actix::Context<Self>;
+}
+
+impl Handler<Event> for RegisteredPeers {
+    type Result = ();
+
+    fn handle(&mut self, msg: Event, _: &mut Self::Context) -> Self::Result {
+        match msg {
+            Event::Rendezvous(RendezvousEvent::PeerRegistered { peer, registration }) => {
                 tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=registration.ttl,  "Peer registered");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
+            Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
                 peer,
                 namespace,
                 error,
-            })) => {
+            }) => {
                 tracing::info!(%peer, %namespace, ?error, "Peer failed to register");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::RegistrationExpired(
-                registration,
-            ))) => {
+            Event::Rendezvous(RendezvousEvent::RegistrationExpired(registration)) => {
                 tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=%Addresses(registration.record.addresses()), ttl=registration.ttl, "Registration expired");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerUnregistered {
-                peer,
-                namespace,
-            })) => {
+            Event::Rendezvous(RendezvousEvent::PeerUnregistered { peer, namespace }) => {
                 tracing::info!(%peer, %namespace, "Peer unregistered");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::DiscoverServed {
-                enquirer,
-                ..
-            })) => {
+            Event::Rendezvous(RendezvousEvent::DiscoverServed { enquirer, .. }) => {
                 tracing::info!(peer=%enquirer, "Discovery served");
-            }
-            SwarmEvent::NewListenAddr(address) => {
-                tracing::info!(%address, "New listening address reported");
             }
             _ => {}
         }
@@ -212,6 +229,10 @@ fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, Strea
 enum Event {
     Rendezvous(rendezvous::Event),
     Ping(PingEvent),
+}
+
+impl actix::Message for Event {
+    type Result = ();
 }
 
 impl From<rendezvous::Event> for Event {

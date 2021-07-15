@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use futures::StreamExt;
+use futures::{AsyncRead, AsyncWrite, StreamExt};
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::Boxed;
 use libp2p::core::upgrade::{SelectUpgrade, Version};
@@ -12,6 +12,7 @@ use libp2p::rendezvous::{Config, Event as RendezvousEvent, Rendezvous};
 use libp2p::swarm::toggle::Toggle;
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
+use libp2p::websocket::WsConfig;
 use libp2p::yamux::YamuxConfig;
 use libp2p::{identity, noise, rendezvous, Multiaddr, PeerId, Swarm, Transport};
 use std::fmt;
@@ -35,8 +36,9 @@ struct Cli {
     /// --secret-file argument
     #[structopt(long)]
     generate_secret: bool,
+    /// Port used for listening on TCP (default)
     #[structopt(long)]
-    port: u16,
+    listen_tcp: u16,
     /// Format logs as JSON
     #[structopt(long)]
     json: bool,
@@ -48,6 +50,9 @@ struct Cli {
     /// case a rendezvous server with Ping is required. This feature will be removed once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed.
     #[structopt(long)]
     ping: bool,
+    /// Port used for listening on websocket
+    #[structopt(long)]
+    listen_websocket: Option<u16>,
 }
 
 #[tokio::main]
@@ -67,17 +72,27 @@ async fn main() -> Result<()> {
     };
     let identity = identity::Keypair::Ed25519(secret_key.into());
 
-    let mut swarm = create_swarm(identity, cli.ping)?;
+    let mut swarm = create_swarm(identity, cli.ping, cli.listen_websocket.is_some())?;
 
     tracing::info!(peer_id=%swarm.local_peer_id(), "Rendezvous server peer id");
 
     swarm
         .listen_on(
-            format!("/ip4/0.0.0.0/tcp/{}", cli.port)
+            format!("/ip4/0.0.0.0/tcp/{}", cli.listen_tcp)
                 .parse()
                 .expect("static string is valid MultiAddress"),
         )
         .context("Failed to initialize listener")?;
+
+    if let Some(websocket_port) = cli.listen_websocket {
+        swarm
+            .listen_on(
+                format!("/ip4/0.0.0.0/tcp/{}/ws", websocket_port)
+                    .parse()
+                    .unwrap(),
+            )
+            .context("Failed to initialize websocket listener")?;
+    }
 
     loop {
         match swarm.select_next_some().await {
@@ -180,10 +195,14 @@ async fn write_secret_key_to_file(secret_key: &ed25519::SecretKey, path: PathBuf
     Ok(())
 }
 
-fn create_swarm(identity: identity::Keypair, ping: bool) -> Result<Swarm<Behaviour>> {
+fn create_swarm(
+    identity: identity::Keypair,
+    ping: bool,
+    websocket: bool,
+) -> Result<Swarm<Behaviour>> {
     let local_peer_id = identity.public().into_peer_id();
 
-    let transport = create_transport(&identity).context("Failed to create transport")?;
+    let transport = create_transport(&identity, websocket).context("Failed to create transport")?;
     let rendezvous = Rendezvous::new(identity, Config::default());
     let swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous, ping), local_peer_id)
         .executor(Box::new(|f| {
@@ -194,15 +213,40 @@ fn create_swarm(identity: identity::Keypair, ping: bool) -> Result<Swarm<Behavio
     Ok(swarm)
 }
 
-fn create_transport(identity: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+fn create_transport(
+    identity: &identity::Keypair,
+    websocket: bool,
+) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+    let tcp_with_dns = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true)).unwrap();
+
+    let transport = if websocket {
+        let websocket_with_dns = WsConfig::new(tcp_with_dns.clone());
+        authenticate_and_multiplex(
+            tcp_with_dns.or_transport(websocket_with_dns).boxed(),
+            &identity,
+        )
+        .unwrap()
+    } else {
+        authenticate_and_multiplex(tcp_with_dns.boxed(), &identity).unwrap()
+    };
+
+    Ok(transport)
+}
+
+fn authenticate_and_multiplex<T>(
+    transport: Boxed<T>,
+    identity: &identity::Keypair,
+) -> Result<Boxed<(PeerId, StreamMuxerBox)>>
+where
+    T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     let auth_upgrade = {
         let noise_identity = noise::Keypair::<X25519Spec>::new().into_authentic(identity)?;
         NoiseConfig::xx(noise_identity).into_authenticated()
     };
     let multiplex_upgrade = SelectUpgrade::new(YamuxConfig::default(), MplexConfig::new());
 
-    let transport = TokioDnsConfig::system(TokioTcpConfig::new().nodelay(true))
-        .context("Failed to create DNS transport")?
+    let transport = transport
         .upgrade(Version::V1)
         .authenticate(auth_upgrade)
         .multiplex(multiplex_upgrade)
@@ -240,16 +284,14 @@ struct Behaviour {
 }
 
 impl Behaviour {
-    fn new(rendezvous: Rendezvous, ping: bool) -> Self {
-        let ping = if ping {
-            Toggle::from(Some(Ping::new(
+    fn new(rendezvous: Rendezvous, enable_ping: bool) -> Self {
+        let ping = Toggle::from(enable_ping.then(|| {
+            Ping::new(
                 PingConfig::new()
                     .with_keep_alive(false)
                     .with_interval(Duration::from_secs(86_400)),
-            )))
-        } else {
-            Toggle::from(None)
-        };
+            )
+        }));
 
         Self {
             // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed

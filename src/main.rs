@@ -9,6 +9,7 @@ use libp2p::mplex::MplexConfig;
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::ping::{Ping, PingConfig, PingEvent};
 use libp2p::rendezvous::{Config, Event as RendezvousEvent, Rendezvous};
+use libp2p::swarm::toggle::Toggle;
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::yamux::YamuxConfig;
@@ -43,6 +44,10 @@ struct Cli {
     /// timestamped, e.g. through journald.
     #[structopt(long)]
     no_timestamp: bool,
+    /// Compose the ping behaviour together with the rendezvous behaviour in
+    /// case a rendezvous server with Ping is required. This feature will be removed once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed.
+    #[structopt(long)]
+    ping: bool,
 }
 
 #[tokio::main]
@@ -62,7 +67,7 @@ async fn main() -> Result<()> {
     };
     let identity = identity::Keypair::Ed25519(secret_key.into());
 
-    let mut swarm = create_swarm(identity)?;
+    let mut swarm = create_swarm(identity, cli.ping)?;
 
     tracing::info!(peer_id=%swarm.local_peer_id(), "Rendezvous server peer id");
 
@@ -175,12 +180,12 @@ async fn write_secret_key_to_file(secret_key: &ed25519::SecretKey, path: PathBuf
     Ok(())
 }
 
-fn create_swarm(identity: identity::Keypair) -> Result<Swarm<Behaviour>> {
+fn create_swarm(identity: identity::Keypair, ping: bool) -> Result<Swarm<Behaviour>> {
     let local_peer_id = identity.public().into_peer_id();
 
     let transport = create_transport(&identity).context("Failed to create transport")?;
     let rendezvous = Rendezvous::new(identity, Config::default());
-    let swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous), local_peer_id)
+    let swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous, ping), local_peer_id)
         .executor(Box::new(|f| {
             tokio::spawn(f);
         }))
@@ -230,20 +235,26 @@ impl From<PingEvent> for Event {
 #[behaviour(event_process = false)]
 #[behaviour(out_event = "Event")]
 struct Behaviour {
-    ping: Ping,
+    ping: Toggle<Ping>,
     rendezvous: Rendezvous,
 }
 
 impl Behaviour {
-    fn new(rendezvous: Rendezvous) -> Self {
-        Self {
-            // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed
-            // interval for sending Ping set to 24 hours
-            ping: Ping::new(
+    fn new(rendezvous: Rendezvous, ping: bool) -> Self {
+        let ping = if ping {
+            Toggle::from(Some(Ping::new(
                 PingConfig::new()
                     .with_keep_alive(false)
                     .with_interval(Duration::from_secs(86_400)),
-            ),
+            )))
+        } else {
+            Toggle::from(None)
+        };
+
+        Self {
+            // TODO: Remove Ping behaviour once https://github.com/libp2p/rust-libp2p/issues/2109 is fixed
+            // interval for sending Ping set to 24 hours
+            ping,
             rendezvous,
         }
     }

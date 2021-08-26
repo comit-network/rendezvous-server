@@ -335,6 +335,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dtoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
+
+[[package]]
 name = "ed25519"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -707,6 +713,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -735,8 +750,8 @@ checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
 
 [[package]]
 name = "libp2p"
-version = "0.39.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.40.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "atomic",
  "bytes 1.0.1",
@@ -744,6 +759,7 @@ dependencies = [
  "lazy_static",
  "libp2p-core",
  "libp2p-dns",
+ "libp2p-metrics",
  "libp2p-mplex",
  "libp2p-noise",
  "libp2p-ping",
@@ -762,8 +778,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-core"
-version = "0.29.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.30.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "asn1_der",
  "bs58",
@@ -780,23 +796,23 @@ dependencies = [
  "multistream-select",
  "parking_lot",
  "pin-project 1.0.7",
- "prost",
- "prost-build",
+ "prost 0.8.0",
+ "prost-build 0.8.0",
  "rand 0.7.3",
  "ring",
  "rw-stream-sink",
  "sha2",
  "smallvec",
  "thiserror",
- "unsigned-varint 0.7.0",
+ "unsigned-varint",
  "void",
  "zeroize",
 ]
 
 [[package]]
 name = "libp2p-dns"
-version = "0.29.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.30.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "futures",
  "libp2p-core",
@@ -806,9 +822,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "libp2p-metrics"
+version = "0.1.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
+dependencies = [
+ "libp2p-core",
+ "libp2p-ping",
+ "libp2p-swarm",
+ "open-metrics-client",
+]
+
+[[package]]
 name = "libp2p-mplex"
-version = "0.29.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.30.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "asynchronous-codec",
  "bytes 1.0.1",
@@ -819,13 +846,13 @@ dependencies = [
  "parking_lot",
  "rand 0.7.3",
  "smallvec",
- "unsigned-varint 0.7.0",
+ "unsigned-varint",
 ]
 
 [[package]]
 name = "libp2p-noise"
-version = "0.32.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.33.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "bytes 1.0.1",
  "curve25519-dalek",
@@ -833,8 +860,8 @@ dependencies = [
  "lazy_static",
  "libp2p-core",
  "log",
- "prost",
- "prost-build",
+ "prost 0.8.0",
+ "prost-build 0.8.0",
  "rand 0.8.4",
  "sha2",
  "snow",
@@ -845,8 +872,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-ping"
-version = "0.30.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.31.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "futures",
  "libp2p-core",
@@ -860,7 +887,7 @@ dependencies = [
 [[package]]
 name = "libp2p-rendezvous"
 version = "0.1.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "asynchronous-codec",
  "bimap",
@@ -868,12 +895,12 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log",
- "prost",
- "prost-build",
+ "prost 0.7.0",
+ "prost-build 0.7.0",
  "rand 0.8.4",
  "sha2",
  "thiserror",
- "unsigned-varint 0.7.0",
+ "unsigned-varint",
  "uuid",
  "void",
  "wasm-timer",
@@ -881,8 +908,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-swarm"
-version = "0.30.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.31.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "either",
  "futures",
@@ -896,8 +923,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-swarm-derive"
-version = "0.23.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.24.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "quote",
  "syn",
@@ -905,8 +932,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-tcp"
-version = "0.29.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.30.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "futures",
  "futures-timer",
@@ -921,8 +948,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-websocket"
-version = "0.30.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.31.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "either",
  "futures",
@@ -938,8 +965,8 @@ dependencies = [
 
 [[package]]
 name = "libp2p-yamux"
-version = "0.33.0"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.34.0"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "futures",
  "libp2p-core",
@@ -950,9 +977,9 @@ dependencies = [
 
 [[package]]
 name = "libsecp256k1"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd1137239ab33b41aa9637a88a28249e5e70c40a42ccc92db7f12cc356c1fcd7"
+checksum = "c9d220bc1feda2ac231cb78c3d26f27676b8cf82c96971f7aeef3d0cf2797c73"
 dependencies = [
  "arrayref",
  "base64 0.12.3",
@@ -969,9 +996,9 @@ dependencies = [
 
 [[package]]
 name = "libsecp256k1-core"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ee11012b293ea30093c129173cac4335513064094619f4639a25b310fd33c11"
+checksum = "d0f6ab710cec28cef759c5f18671a27dae2a5f952cdaaee1d8e2908cb2478a80"
 dependencies = [
  "crunchy",
  "digest",
@@ -980,18 +1007,18 @@ dependencies = [
 
 [[package]]
 name = "libsecp256k1-gen-ecmult"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32239626ffbb6a095b83b37a02ceb3672b2443a87a000a884fc3c4d16925c9c0"
+checksum = "ccab96b584d38fac86a83f07e659f0deafd0253dc096dab5a36d53efe653c5c3"
 dependencies = [
  "libsecp256k1-core",
 ]
 
 [[package]]
 name = "libsecp256k1-gen-genmult"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76acb433e21d10f5f9892b1962c2856c58c7f39a9e4bd68ac82b9436a0ffd5b9"
+checksum = "67abfe149395e3aa1c48a2beb32b068e2334402df8181f818d3aee2b304c4f5d"
 dependencies = [
  "libsecp256k1-core",
 ]
@@ -1101,9 +1128,9 @@ dependencies = [
 
 [[package]]
 name = "multiaddr"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7139982f583d7e53879d9f611fe48ced18e77d684309484f2252c76bcd39f549"
+checksum = "48ee4ea82141951ac6379f964f71b20876d43712bea8faf6dd1a375e08a46499"
 dependencies = [
  "arrayref",
  "bs58",
@@ -1113,21 +1140,21 @@ dependencies = [
  "percent-encoding",
  "serde",
  "static_assertions",
- "unsigned-varint 0.7.0",
+ "unsigned-varint",
  "url",
 ]
 
 [[package]]
 name = "multihash"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dac63698b887d2d929306ea48b63760431ff8a24fac40ddb22f9c7f49fb7cab"
+checksum = "752a61cd890ff691b4411423d23816d5866dd5621e4d1c5687a53b94b5a979d8"
 dependencies = [
  "digest",
  "generic-array",
  "multihash-derive",
  "sha2",
- "unsigned-varint 0.5.1",
+ "unsigned-varint",
 ]
 
 [[package]]
@@ -1152,15 +1179,15 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
 name = "multistream-select"
-version = "0.10.3"
-source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#4af8af780ba3b1c8344b3d19a146d9628ad5bdb2"
+version = "0.10.4"
+source = "git+https://github.com/comit-network/rust-libp2p.git?branch=rendezvous#433b3b5cf18b8e8aef1dc8ebd06e2223c6e7e8f3"
 dependencies = [
  "bytes 1.0.1",
  "futures",
  "log",
  "pin-project 1.0.7",
  "smallvec",
- "unsigned-varint 0.7.0",
+ "unsigned-varint",
 ]
 
 [[package]]
@@ -1218,6 +1245,38 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "open-metrics-client"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7337d80c23c2d8b1349563981bc4fb531220733743ba8115454a67b181173f0d"
+dependencies = [
+ "dtoa",
+ "itoa",
+ "open-metrics-client-derive-text-encode",
+ "owning_ref",
+]
+
+[[package]]
+name = "open-metrics-client-derive-text-encode"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a15c83b586f00268c619c1cb3340ec1a6f59dd9ba1d9833a273a68e6d5cd8ffc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "owning_ref"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
+dependencies = [
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "parking_lot"
@@ -1424,7 +1483,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e6984d2f1a23009bd270b8bb56d0926810a3d483f59c987d77969e9d8e840b2"
 dependencies = [
  "bytes 1.0.1",
- "prost-derive",
+ "prost-derive 0.7.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de5e2533f59d08fcf364fd374ebda0692a70bd6d7e66ef97f306f45c6c5d8020"
+dependencies = [
+ "bytes 1.0.1",
+ "prost-derive 0.8.0",
 ]
 
 [[package]]
@@ -1435,12 +1504,30 @@ checksum = "32d3ebd75ac2679c2af3a92246639f9fcc8a442ee420719cc4fe195b98dd5fa3"
 dependencies = [
  "bytes 1.0.1",
  "heck",
- "itertools",
+ "itertools 0.9.0",
  "log",
  "multimap",
  "petgraph",
- "prost",
- "prost-types",
+ "prost 0.7.0",
+ "prost-types 0.7.0",
+ "tempfile",
+ "which",
+]
+
+[[package]]
+name = "prost-build"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "355f634b43cdd80724ee7848f95770e7e70eefa6dcf14fea676216573b8fd603"
+dependencies = [
+ "bytes 1.0.1",
+ "heck",
+ "itertools 0.10.1",
+ "log",
+ "multimap",
+ "petgraph",
+ "prost 0.8.0",
+ "prost-types 0.8.0",
  "tempfile",
  "which",
 ]
@@ -1452,7 +1539,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "169a15f3008ecb5160cba7d37bcd690a7601b6d30cfb87a117d45e59d52af5d4"
 dependencies = [
  "anyhow",
- "itertools",
+ "itertools 0.9.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "600d2f334aa05acb02a755e217ef1ab6dea4d51b58b7846588b747edec04efba"
+dependencies = [
+ "anyhow",
+ "itertools 0.10.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -1465,7 +1565,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b518d7cdd93dab1d1122cf07fa9a60771836c668dde9d9e2a139f957f0d9f1bb"
 dependencies = [
  "bytes 1.0.1",
- "prost",
+ "prost 0.7.0",
+]
+
+[[package]]
+name = "prost-types"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "603bbd6394701d13f3f25aada59c7de9d35a6a5887cfc156181234a44002771b"
+dependencies = [
+ "bytes 1.0.1",
+ "prost 0.8.0",
 ]
 
 [[package]]
@@ -1884,6 +1994,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
+name = "stable_deref_trait"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2224,12 +2340,6 @@ dependencies = [
  "generic-array",
  "subtle",
 ]
-
-[[package]]
-name = "unsigned-varint"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7fdeedbf205afadfe39ae559b75c3240f24e257d0ca27e85f85cb82aa19ac35"
 
 [[package]]
 name = "unsigned-varint"

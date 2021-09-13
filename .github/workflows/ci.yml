@@ -21,7 +21,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Check formatting
-        uses: dprint/check@v1.5
+        uses: dprint/check@v2.0
 
       - name: Run clippy with default features
         run: cargo clippy --workspace --all-targets -- -D warnings

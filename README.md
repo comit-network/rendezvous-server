@@ -10,6 +10,8 @@ Run the `rendezvous_server`:
 rendezvous_server --secret-file <PATH-TO-SECRET-FILE> --port 8888
 ```
 
+If you are running server for the first time, you can create the secret by using `--generate-secret` flag.
+
 Run `rendezvous_server --help` for more options
 
 ### TLS configuration

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Use a newer version of the libp2p protocol that splits client and server rendezvous behaviours and changes wire message/s.
+  These changes mean this release will be incompatible with previous releases.
 - `--timestamp` flag to `--no-timestamp`.
   By default, logs are now emitted with a timestamp.
 

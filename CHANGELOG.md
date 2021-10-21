@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0]
+
 ### Changed
 
 - Use a newer version of the libp2p protocol that splits client and server rendezvous behaviours and changes wire message/s.

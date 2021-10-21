@@ -8,7 +8,6 @@ use libp2p::identity::ed25519;
 use libp2p::mplex::MplexConfig;
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::ping::{Ping, PingConfig, PingEvent};
-use libp2p::rendezvous::{Config, Event as RendezvousEvent, Rendezvous};
 use libp2p::swarm::toggle::Toggle;
 use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
@@ -123,37 +122,36 @@ async fn main() -> Result<()> {
 
     loop {
         match swarm.select_next_some().await {
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerRegistered {
-                peer,
-                registration,
-            })) => {
+            SwarmEvent::Behaviour(Event::Rendezvous(
+                rendezvous::server::Event::PeerRegistered { peer, registration },
+            )) => {
                 tracing::info!(%peer, namespace=%registration.namespace, addresses=?registration.record.addresses(), ttl=registration.ttl,  "Peer registered");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerNotRegistered {
-                peer,
-                namespace,
-                error,
-            })) => {
+            SwarmEvent::Behaviour(Event::Rendezvous(
+                rendezvous::server::Event::PeerNotRegistered {
+                    peer,
+                    namespace,
+                    error,
+                },
+            )) => {
                 tracing::info!(%peer, %namespace, ?error, "Peer failed to register");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::RegistrationExpired(
-                registration,
-            ))) => {
+            SwarmEvent::Behaviour(Event::Rendezvous(
+                rendezvous::server::Event::RegistrationExpired(registration),
+            )) => {
                 tracing::info!(peer=%registration.record.peer_id(), namespace=%registration.namespace, addresses=%Addresses(registration.record.addresses()), ttl=registration.ttl, "Registration expired");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::PeerUnregistered {
-                peer,
-                namespace,
-            })) => {
+            SwarmEvent::Behaviour(Event::Rendezvous(
+                rendezvous::server::Event::PeerUnregistered { peer, namespace },
+            )) => {
                 tracing::info!(%peer, %namespace, "Peer unregistered");
             }
-            SwarmEvent::Behaviour(Event::Rendezvous(RendezvousEvent::DiscoverServed {
-                enquirer,
-                ..
-            })) => {
+            SwarmEvent::Behaviour(Event::Rendezvous(
+                rendezvous::server::Event::DiscoverServed { enquirer, .. },
+            )) => {
                 tracing::info!(peer=%enquirer, "Discovery served");
             }
-            SwarmEvent::NewListenAddr(address) => {
+            SwarmEvent::NewListenAddr { address, .. } => {
                 tracing::info!(%address, "New listening address reported");
             }
             _ => {}
@@ -251,11 +249,11 @@ fn create_swarm(
     websocket: bool,
     tls: Option<tls::Config>,
 ) -> Result<Swarm<Behaviour>> {
-    let local_peer_id = identity.public().into_peer_id();
+    let local_peer_id = identity.public().to_peer_id();
 
     let transport =
         create_transport(&identity, websocket, tls).context("Failed to create transport")?;
-    let rendezvous = Rendezvous::new(identity, Config::default());
+    let rendezvous = rendezvous::server::Behaviour::new(rendezvous::server::Config::default());
     let swarm = SwarmBuilder::new(transport, Behaviour::new(rendezvous, ping), local_peer_id)
         .executor(Box::new(|f| {
             tokio::spawn(f);
@@ -317,12 +315,12 @@ where
 
 #[derive(Debug)]
 enum Event {
-    Rendezvous(rendezvous::Event),
+    Rendezvous(rendezvous::server::Event),
     Ping(PingEvent),
 }
 
-impl From<rendezvous::Event> for Event {
-    fn from(event: rendezvous::Event) -> Self {
+impl From<rendezvous::server::Event> for Event {
+    fn from(event: rendezvous::server::Event) -> Self {
         Event::Rendezvous(event)
     }
 }
@@ -338,11 +336,11 @@ impl From<PingEvent> for Event {
 #[behaviour(out_event = "Event")]
 struct Behaviour {
     ping: Toggle<Ping>,
-    rendezvous: Rendezvous,
+    rendezvous: rendezvous::server::Behaviour,
 }
 
 impl Behaviour {
-    fn new(rendezvous: Rendezvous, enable_ping: bool) -> Self {
+    fn new(rendezvous: rendezvous::server::Behaviour, enable_ping: bool) -> Self {
         let ping = Toggle::from(enable_ping.then(|| {
             Ping::new(
                 PingConfig::new()

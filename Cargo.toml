@@ -8,7 +8,7 @@ edition = "2018"
 anyhow = "1"
 atty = "0.2"
 futures = { version = "0.3", default-features = false }
-libp2p = { version = "0.41", default-features = false, features = [ "rendezvous", "tcp-tokio", "yamux", "mplex", "dns-tokio", "noise", "ping", "websocket" ] }
+libp2p = { version = "0.44", default-features = false, features = [ "rendezvous", "tcp-tokio", "yamux", "mplex", "dns-tokio", "noise", "ping", "websocket" ] }
 structopt = { version = "0.3", default-features = false }
 tokio = { version = "1", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs", "net", "io-util" ] }
 tracing = { version = "0.1", features = [ "attributes" ] }

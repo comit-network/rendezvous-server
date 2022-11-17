@@ -60,7 +60,7 @@ jobs:
         run: cargo build -p rendezvous-server --target ${{ matrix.target }}
 
       - name: Upload rendezvous-server binary
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3.1.1
         with:
           name: rendezvous-server-${{ matrix.target }}
           path: target/${{ matrix.target }}/debug/rendezvous-server
